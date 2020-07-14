@@ -11,11 +11,6 @@ from src.app import app
 client = MongoClient("mongodb://localhost:27017/myapi")
 db = client.get_database()
 
-"""
-client = MongoClient(DBURL)
-print(f"connected to {DBURL}")
-db = client.get_database()
-"""
 
 user_collec=db["users"]
 chat_collec=db["chats"]
@@ -36,7 +31,7 @@ def newUser(username):
     else:
         user={"username":username}
         user_collec.insert_one(user)
-    res=user_collec.find_one({"username":username})
+    res=user_collec.find_one({"username":username},{"username":1})
     return dumps(res)
 
 
@@ -48,7 +43,7 @@ def newChat(chatname):
     else:
         infochat={"chat_name":chatname}
         chat_collec.insert_one(infochat)
-        res=chat_collec.find_one({"chat_name":chatname},{"chat_name":1,"_id":1})
+        res=chat_collec.find_one({"chat_name":chatname},{"_id":1,"chat_name":1})
         return dumps(res)
 
 
@@ -59,37 +54,35 @@ def addUser(chatname,user):
         raise APIError ("Chat doesn't exist, please check your spelling")
     else:
         user_id=user_collec.find_one({"username":user},{"_id":1})
-        print(user_id)
         chat_collec.update({ "_id":chat_id["_id"]},{ "$push":{ "participants":user_id["_id"]}})
         res=chat_collec.find_one({"chat_name":chatname},{"participants":1})
-        return dumps(res)
+        users=[user_collec.find_one({"_id":part},{"_id":0,"username":1})["username"] for part in res["participants"]]
+        dic={"chat_name":chatname,"participants":users}
+        return dumps(dic)
    
 
 
 @app.route("/chat/<chatname>/user/<username>/addmessage/<message>")
 def newMessage(chatname,username,message):
     chat_id=chat_collec.find_one({"chat_name":chatname},{"_id":1})
-    print(chat_id)
     if len(chat_id)==0:
         raise APIError ("Chat doesn't exist, please check your spelling")
     user_id=user_collec.find_one({"username":username},{"_id":1})
-    print(user_id)
     if user_id==0:
         raise APIError ("Username doesn't exist, please check your spelling")
     else:
-        message_info={"user":user_id["_id"], "chat_name": chatname, "chat":chat_id["_id"], "message":message}
+        message_info={"user":user_id["_id"],"username":username, "chat":chat_id["_id"],"chat_name": chatname, "message":message}
         mess_collec.insert_one(message_info)
-        res=mess_collec.find_one({"message":message})
-        return dumps(res)
+        res=mess_collec.find_one({"message":message},{"_id":0})
+        dic={"chat_name":chatname,"username":username,"message":res["message"]}
+        return dumps(dic)
 
 
 @app.route("/chat/<chatname>/list")
 def getMessages(chatname):
     res=mess_collec.find({"chat_name":chatname},{"chat_name":1,"message":1})
     lista=list(res)
-    
-    a=[]
-    for i in range(len(lista)):
-        a.append(lista[i]["message"])
-    return dumps(a)
+    a=[lista[i]["message"] for i in range(len(lista))]
+    dic={"chat_name":chatname,"message":a}
+    return dumps(dic)
    
