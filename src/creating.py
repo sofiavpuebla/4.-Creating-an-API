@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from src.config import DBURL
-from src.errorHandling import APIError
+from src.errorHandling import APIError, errorHandler
 from bson.json_util import dumps
 from bson.objectid import ObjectId
 from flask import Flask
@@ -8,22 +8,23 @@ from src.app import app
 
 
 
-client = MongoClient("mongodb://localhost:27017/myapi")
+client = MongoClient(DBURL)
 db = client.get_database()
 
 
 user_collec=db["users"]
 chat_collec=db["chats"]
 mess_collec=db["messages"]
-print("hello")
-print(DBURL)
+
 
 @app.route("/")
+@errorHandler
 def hello():
     return f"Welcome to my api"
 
 
 @app.route("/user/create/<username>")
+@errorHandler
 def newUser(username):
     users=user_collec.distinct("username")
     if username in users:
@@ -36,6 +37,7 @@ def newUser(username):
 
 
 @app.route("/chat/create/<chatname>")
+@errorHandler
 def newChat(chatname):
     chats=chat_collec.distinct("chat_name")
     if chatname in chats:
@@ -48,6 +50,7 @@ def newChat(chatname):
 
 
 @app.route("/chat/<chatname>/adduser/<user>")
+@errorHandler
 def addUser(chatname,user):
     chat_id=chat_collec.find_one({"chat_name":chatname},{"_id":1})
     if len(chat_id)==0:
@@ -63,6 +66,7 @@ def addUser(chatname,user):
 
 
 @app.route("/chat/<chatname>/user/<username>/addmessage/<message>")
+@errorHandler
 def newMessage(chatname,username,message):
     chat_id=chat_collec.find_one({"chat_name":chatname},{"_id":1})
     if len(chat_id)==0:
@@ -79,6 +83,7 @@ def newMessage(chatname,username,message):
 
 
 @app.route("/chat/<chatname>/list")
+@errorHandler
 def getMessages(chatname):
     res=mess_collec.find({"chat_name":chatname},{"chat_name":1,"message":1})
     lista=list(res)
