@@ -49,7 +49,7 @@ res = requests.get(url)
 
 ## Insertar un mensaje en un chat
 
-`/chat/<chatname>/user/<username>/addmessage/<message>``
+`/chat/<chatname>/user/<username>/addmessage/<message>`
 
 Esta extensión sirve para añadir un mensaje de un usuario a un chat. Solo se podrá insertar si el usuario y el chat existen en la base de datos.
 
